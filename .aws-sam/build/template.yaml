@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM template to deploy Lambda functions and DynamoDB table for image
+  generation and prompt optimization.
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: creative360-datateam-image-generator-optimization
+    Description: The S3 bucket where Lambda function code is stored.
+Resources:
+  SavedPromptsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: SavedPrompts
+      AttributeDefinitions:
+      - AttributeName: uuid
+        AttributeType: S
+      KeySchema:
+      - AttributeName: uuid
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${AWS::StackName}-LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: LambdaExecutionPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            Resource:
+              Fn::GetAtt:
+              - SavedPromptsTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - bedrock:InvokeModel
+            Resource: '*'
+  ImageProcessingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-ImageProcessingFunction
+      Handler: imageProcessing.lambda_handler
+      Runtime: python3.11
+      CodeUri: ImageProcessingFunction
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: 120
+      MemorySize: 1024
+    Metadata:
+      SamResourceId: ImageProcessingFunction
+  SavePromptFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-SavePromptFunction
+      Handler: savePrompt.lambda_handler
+      Runtime: python3.11
+      CodeUri: SavePromptFunction
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: 30
+      MemorySize: 128
+    Metadata:
+      SamResourceId: SavePromptFunction
