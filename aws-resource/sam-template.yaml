@@ -1,5 +1,3 @@
-# SAM Template with correct CodeUri paths
-
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: SAM template to deploy Lambda functions and DynamoDB table for image generation and prompt optimization.
@@ -9,6 +7,11 @@ Parameters:
     Type: String
     Default: creative360-datateam-image-generator-optimization
     Description: The S3 bucket where Lambda function code is stored.
+
+  S3Prefix:
+    Type: String
+    Default: prompt-engineer-manul
+    Description: The S3 prefix where Lambda function code is stored.
 
 Resources:
   # DynamoDB Table to save prompts
@@ -26,7 +29,7 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
 
-  # IAM Role for Lambda Execution
+  # IAM Role for Lambda Execution with CloudWatch and DynamoDB permissions
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -53,6 +56,12 @@ Resources:
                 Action:
                   - bedrock:InvokeModel
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "arn:aws:logs:*:*:*"
 
   # Lambda Function: ImageProcessingFunction
   ImageProcessingFunction:
@@ -61,10 +70,26 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-ImageProcessingFunction"
       Handler: imageProcessing.lambda_handler
       Runtime: python3.11
-      CodeUri: ../lambda_function/ImageProcessingFunction
+      CodeUri:
+        Bucket: !Ref S3BucketName
+        Key: !Sub "${S3Prefix}/lambda/imageProcessing.zip"
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 120
       MemorySize: 1024
+
+  # Lambda Function: OptimizePromptFunction
+  OptimizePromptFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-OptimizePromptFunction"
+      Handler: OptimizePrompt.lambda_handler
+      Runtime: python3.11
+      CodeUri:
+        Bucket: !Ref S3BucketName
+        Key: !Sub "${S3Prefix}/lambda/optimizePrompt.zip"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      MemorySize: 512
 
   # Lambda Function: SavePromptFunction
   SavePromptFunction:
@@ -73,7 +98,9 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-SavePromptFunction"
       Handler: savePrompt.lambda_handler
       Runtime: python3.11
-      CodeUri: ../lambda_function/SavePromptFunction
+      CodeUri:
+        Bucket: !Ref S3BucketName
+        Key: !Sub "${S3Prefix}/lambda/savePrompt.zip"
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 30
       MemorySize: 128
@@ -83,6 +110,11 @@ Outputs:
   ImageProcessingFunctionArn:
     Description: ARN of the Lambda function for image processing
     Value: !GetAtt ImageProcessingFunction.Arn
+
+  # Output for the OptimizePromptFunction Lambda ARN
+  OptimizePromptFunctionArn:
+    Description: ARN of the Lambda function for prompt optimization
+    Value: !GetAtt OptimizePromptFunction.Arn
 
   # Output for the SavePromptFunction Lambda ARN
   SavePromptFunctionArn:
