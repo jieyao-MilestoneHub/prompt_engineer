@@ -21,9 +21,9 @@ seed = st.number_input("Enter seed value (optional):", value=42, min_value=0)
 if 'image_generated' not in st.session_state:
     st.session_state.image_generated = False
     st.session_state.image_data = None
-    st.session_state.prompt = prompt  # Save initial prompt
+    st.session_state.prompt = prompt
     st.session_state.optimized_prompt = None
-    st.session_state.rating = 5  # Initialize rating
+    st.session_state.rating = 5
     st.session_state.prev_prompt = prompt
     st.session_state.prev_seed = seed
     st.session_state.rating_changed = False
@@ -33,15 +33,19 @@ prompt_changed = st.session_state.prev_prompt != prompt
 seed_changed = st.session_state.prev_seed != seed
 
 # Lambda function ARNs
-lambda_function_image_generator = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-ImageProcessingFunction"
-lambda_function_optimize_prompt = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-OptimizePromptFunction"
-lambda_function_save_prompts = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-SavePromptFunction"
-lambda_function_add_label = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-AddLabelFunction"
+lambda_function_image_generator = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-ImageProcessingFunction"
+lambda_function_optimize_prompt = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-OptimizePromptFunction"
+lambda_function_save_prompts = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-SavePromptFunction"
+lambda_function_add_label = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-AddLabelFunction"
 
 # Retrieve historical labels from DynamoDB
 def get_labels():
-    response = labels_table.scan(ConsistentRead=False)
-    return {item['label_id']: item['label_name'] for item in response['Items']}
+    try:
+        response = labels_table.scan(ConsistentRead=False)
+        return {item['label_id']: item['label_name'] for item in response['Items']}
+    except Exception as e:
+        st.error(f"Error retrieving labels: {str(e)}")
+        return {}
 
 # Generate Image button action
 with st.form("generate_image_form"):
@@ -65,11 +69,10 @@ with st.form("generate_image_form"):
                 st.success("Image generated successfully!")
                 image_data = result.get('image_data')
                 if image_data:
-                    # Save image data and prompt to session state
                     st.session_state.image_data = image_data
                     st.session_state.image_generated = True
                     st.session_state.prompt = prompt
-                    st.session_state.optimized_prompt = None  # Reset optimized prompt
+                    st.session_state.optimized_prompt = None
                     st.session_state.prev_prompt = prompt
                     st.session_state.prev_seed = seed
             else:
@@ -92,7 +95,6 @@ if st.session_state.image_generated and st.session_state.image_data:
     # Input for adding new label
     new_label = st.text_input("Add a new tag (optional):")
     if st.button("Add Tag") and new_label:
-        # Call the add_label Lambda function
         payload = {'label_name': new_label}
         try:
             response = lambda_client.invoke(
@@ -103,8 +105,8 @@ if st.session_state.image_generated and st.session_state.image_data:
             result = json.loads(response['Payload'].read())
             if result.get('statusCode') == 200:
                 label_data = json.loads(result['body'])
-                existing_labels[label_data['label_id']] = label_data['label_name']  # Update local labels list
-                selected_labels.append(label_data['label_name'])  # Auto-select the new label for convenience
+                existing_labels[label_data['label_id']] = label_data['label_name']
+                selected_labels.append(label_data['label_name'])
                 st.success(f"Tag '{new_label}' added.")
             else:
                 error_message = result.get('body', 'Unknown error')
@@ -115,13 +117,11 @@ if st.session_state.image_generated and st.session_state.image_data:
     # Map selected labels back to their IDs for storage
     selected_label_ids = [label_id for label_id, label_name in existing_labels.items() if label_name in selected_labels]
 
-    # Display rating slider and track if the rating has changed
+    # Display rating slider
     st.session_state.rating = st.slider("Rate the generated image (1-10):", 1, 10, st.session_state.rating, on_change=lambda: setattr(st.session_state, 'rating_changed', True))
     
     # Feedback form for prompt optimization
     st.subheader("Provide Feedback to Optimize Prompt")
-
-    # Structured feedback questions
     feedback_composition = st.text_area("Describe improvements in composition (e.g., layout, balance):")
     feedback_lighting = st.text_area("Describe improvements in lighting (e.g., brightness, shadows):")
     feedback_style = st.text_area("Describe preferred style adjustments (e.g., realism, abstract):")

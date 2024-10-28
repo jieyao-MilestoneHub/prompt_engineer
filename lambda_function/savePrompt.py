@@ -10,12 +10,13 @@ logger.setLevel(logging.INFO)
 def lambda_handler(event, context):
     # Initialize DynamoDB resource and table
     dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table("SavedPrompts")  # Ensure this matches your actual table name
+    table = dynamodb.Table("PromptsTable")  # Ensure this matches your table name in the template
 
     # Get data from the event
     prompt = event.get("prompt")
     rating = event.get("rating")
     seed = event.get("seed")
+    labels = event.get("labels", [])  # Get labels, default to an empty list if not provided
 
     # Validate required fields
     if not prompt or not rating:
@@ -33,13 +34,15 @@ def lambda_handler(event, context):
     logger.info(f"Prompt: {prompt}")
     logger.info(f"Rating: {rating}")
     logger.info(f"Seed: {seed}")
+    logger.info(f"Labels: {labels}")
 
     # Create the item to store in DynamoDB
     item = {
-        "uuid": prompt_hash,  # Use the hash as a unique identifier
+        "prompt_id": prompt_hash,  # Use prompt_id to match the table's primary key definition
         "prompt": prompt,
         "seed": seed,
         "rating": str(rating),
+        "labels": labels,  # Add labels here
         "timestamp": datetime.utcnow().isoformat()
     }
 

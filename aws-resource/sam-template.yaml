@@ -107,7 +107,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-OptimizePromptFunction"
-      Handler: OptimizePrompt.lambda_handler
+      Handler: optimizePrompt.lambda_handler
       Runtime: python3.11
       CodeUri:
         Bucket: !Ref S3BucketName
