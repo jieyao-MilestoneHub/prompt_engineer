@@ -5,8 +5,12 @@ import base64
 from io import BytesIO
 from PIL import Image
 
-# Initialize AWS Lambda client
+# Initialize AWS Lambda and DynamoDB clients
 lambda_client = boto3.client('lambda', region_name='us-east-1')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+labels_table = dynamodb.Table('LabelsTable')
+prompts_table = dynamodb.Table('PromptsTable')
+
 st.title("Prompt Engineer")
 
 # User input for prompt and seed
@@ -29,9 +33,15 @@ prompt_changed = st.session_state.prev_prompt != prompt
 seed_changed = st.session_state.prev_seed != seed
 
 # Lambda function ARNs
-lambda_function_image_generator = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-202410281317-ImageProcessingFunction"
-lambda_function_optimize_prompt = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-202410281317-OptimizePromptFunction"
-lambda_function_save_prompts = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-202410281317-SavePromptFunction"
+lambda_function_image_generator = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-ImageProcessingFunction"
+lambda_function_optimize_prompt = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-OptimizePromptFunction"
+lambda_function_save_prompts = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-SavePromptFunction"
+lambda_function_add_label = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11550222243-AddLabelFunction"
+
+# Retrieve historical labels from DynamoDB
+def get_labels():
+    response = labels_table.scan(ConsistentRead=False)
+    return {item['label_id']: item['label_name'] for item in response['Items']}
 
 # Generate Image button action
 with st.form("generate_image_form"):
@@ -68,12 +78,43 @@ with st.form("generate_image_form"):
         except Exception as e:
             st.error(f"Error calling Lambda function: {str(e)}")
 
-# Display generated image and rating slider
+# Display generated image, tags selection, and rating slider
 if st.session_state.image_generated and st.session_state.image_data:
     image_bytes = base64.b64decode(st.session_state.image_data)
     image = Image.open(BytesIO(image_bytes))
     st.image(image)
-    
+
+    # Select labels for the generated prompt image
+    st.subheader("Tag the Generated Image")
+    existing_labels = get_labels()
+    selected_labels = st.multiselect("Choose tags for this image:", options=list(existing_labels.values()))
+
+    # Input for adding new label
+    new_label = st.text_input("Add a new tag (optional):")
+    if st.button("Add Tag") and new_label:
+        # Call the add_label Lambda function
+        payload = {'label_name': new_label}
+        try:
+            response = lambda_client.invoke(
+                FunctionName=lambda_function_add_label,
+                InvocationType="RequestResponse",
+                Payload=json.dumps(payload)
+            )
+            result = json.loads(response['Payload'].read())
+            if result.get('statusCode') == 200:
+                label_data = json.loads(result['body'])
+                existing_labels[label_data['label_id']] = label_data['label_name']  # Update local labels list
+                selected_labels.append(label_data['label_name'])  # Auto-select the new label for convenience
+                st.success(f"Tag '{new_label}' added.")
+            else:
+                error_message = result.get('body', 'Unknown error')
+                st.error(f"Error adding tag: {error_message}")
+        except Exception as e:
+            st.error(f"Error calling Lambda function: {str(e)}")
+
+    # Map selected labels back to their IDs for storage
+    selected_label_ids = [label_id for label_id, label_name in existing_labels.items() if label_name in selected_labels]
+
     # Display rating slider and track if the rating has changed
     st.session_state.rating = st.slider("Rate the generated image (1-10):", 1, 10, st.session_state.rating, on_change=lambda: setattr(st.session_state, 'rating_changed', True))
     
@@ -131,7 +172,8 @@ with st.form("save_prompt_form"):
         save_payload = {
             "prompt": prompt_to_save,
             "rating": st.session_state.rating,
-            "seed": seed
+            "seed": seed,
+            "labels": selected_label_ids
         }
         try:
             response = lambda_client.invoke(

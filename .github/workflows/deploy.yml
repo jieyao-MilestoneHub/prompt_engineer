@@ -1,0 +1,56 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          path: "./"  # 保持工作目錄，以確保 lambda_function 夾在正確位置
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy Lambda functions and CloudFormation stack
+        env:
+          BUCKET_NAME: creative360-datateam-image-generator-optimization
+          PREFIX: prompt-engineer-manul
+          TEMPLATE_FILE: aws-resource/sam-template.yaml
+          TIMESTAMP: $(date +"%Y%m%d%H%M")
+          STACK_NAME: image-generation-stack-${{ github.run_id }}  # 使用 GitHub Run ID 作為唯一 Stack 名稱
+        run: |
+          # 定義壓縮與上傳的目錄
+          LAMBDA_DIR="lambda_function"
+          DEPLOY_DIR="."
+
+          # 確認檔案是否存在於 lambda_function 資料夾
+          echo "Listing files in $LAMBDA_DIR:"
+          ls -al $LAMBDA_DIR || exit 1  # 若 ls 遇到錯誤（文件不存在），退出程式
+
+          # 壓縮 Lambda 函數檔案並上傳至 S3
+          zip -j "$DEPLOY_DIR/imageProcessing.zip" "$LAMBDA_DIR/imageProcessing.py"
+          zip -j "$DEPLOY_DIR/optimizePrompt.zip" "$LAMBDA_DIR/optimizePrompt.py"
+          zip -j "$DEPLOY_DIR/savePrompt.zip" "$LAMBDA_DIR/savePrompt.py"
+          zip -j "$DEPLOY_DIR/addLabel.zip" "$LAMBDA_DIR/addLabel.py"
+
+          # 上傳至 S3
+          aws s3 cp "$DEPLOY_DIR/imageProcessing.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/imageProcessing.zip"
+          aws s3 cp "$DEPLOY_DIR/optimizePrompt.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/optimizePrompt.zip"
+          aws s3 cp "$DEPLOY_DIR/savePrompt.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/savePrompt.zip"
+          aws s3 cp "$DEPLOY_DIR/addLabel.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/addLabel.zip"
+
+          # 部署 CloudFormation 模板
+          aws cloudformation deploy --template-file "$TEMPLATE_FILE" --stack-name "$STACK_NAME" --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+
+          echo "Deployment completed. Stack name: $STACK_NAME"

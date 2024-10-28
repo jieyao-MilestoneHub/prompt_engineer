@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: SAM template to deploy Lambda functions and DynamoDB table for image generation and prompt optimization.
+Description: SAM template to deploy Lambda functions and DynamoDB tables for image generation and prompt optimization with tags.
 
 Parameters:
   S3BucketName:
@@ -14,20 +14,40 @@ Parameters:
     Description: The S3 prefix where Lambda function code is stored.
 
 Resources:
-  # DynamoDB Table to save prompts
-  SavedPromptsTable:
+  # DynamoDB Table to save prompts and associated tags
+  PromptsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: SavedPrompts
+      TableName: PromptsTable
       AttributeDefinitions:
-        - AttributeName: uuid
+        - AttributeName: prompt_id
+          AttributeType: S
+        - AttributeName: labels
+          AttributeType: S  # Attribute for GSI
+      KeySchema:
+        - AttributeName: prompt_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: LabelsIndex
+          KeySchema:
+            - AttributeName: labels
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST  # Use on-demand billing mode, no need for ProvisionedThroughput
+
+  # DynamoDB Table to save available tags
+  LabelsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LabelsTable
+      AttributeDefinitions:
+        - AttributeName: label_id
           AttributeType: S
       KeySchema:
-        - AttributeName: uuid
+        - AttributeName: label_id
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST  # Use on-demand billing mode, no need for ProvisionedThroughput
 
   # IAM Role for Lambda Execution with CloudWatch and DynamoDB permissions
   LambdaExecutionRole:
@@ -51,7 +71,12 @@ Resources:
                 Action:
                   - dynamodb:PutItem
                   - dynamodb:GetItem
-                Resource: !GetAtt SavedPromptsTable.Arn
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt PromptsTable.Arn
+                  - !GetAtt LabelsTable.Arn
               - Effect: Allow
                 Action:
                   - bedrock:InvokeModel
@@ -105,6 +130,20 @@ Resources:
       Timeout: 30
       MemorySize: 128
 
+  # Lambda Function: AddLabelFunction
+  AddLabelFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-AddLabelFunction"
+      Handler: addLabel.lambda_handler
+      Runtime: python3.11
+      CodeUri:
+        Bucket: !Ref S3BucketName
+        Key: !Sub "${S3Prefix}/lambda/addLabel.zip"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 128
+
 Outputs:
   # Output for the ImageProcessingFunction Lambda ARN
   ImageProcessingFunctionArn:
@@ -121,7 +160,16 @@ Outputs:
     Description: ARN of the Lambda function to save prompts
     Value: !GetAtt SavePromptFunction.Arn
 
-  # Output for the DynamoDB Table ARN
-  SavedPromptsTableArn:
-    Description: The ARN of the DynamoDB Table for saved prompts
-    Value: !GetAtt SavedPromptsTable.Arn
+  # Output for the AddLabelFunction Lambda ARN
+  AddLabelFunctionArn:
+    Description: ARN of the Lambda function to add labels
+    Value: !GetAtt AddLabelFunction.Arn
+
+  # Output for the DynamoDB Tables ARNs
+  PromptsTableArn:
+    Description: The ARN of the DynamoDB Table for prompts and their associated tags
+    Value: !GetAtt PromptsTable.Arn
+
+  LabelsTableArn:
+    Description: The ARN of the DynamoDB Table for tags
+    Value: !GetAtt LabelsTable.Arn
