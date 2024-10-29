@@ -3,7 +3,8 @@ name: Deploy to AWS
 on:
   push:
     branches:
-      - master/titanOutpaint
+      # - master/titanOutpaint
+      - testing
 
 jobs:
   deploy:
@@ -24,7 +25,7 @@ jobs:
 
       - name: Deploy Lambda functions and CloudFormation stack
         env:
-          BUCKET_NAME: creative360-datateam-image-generator-optimization
+          BUCKET_NAME: image-generator-optimization
           PREFIX: prompt-engineer-manul
           TEMPLATE_FILE: aws-resource/sam-template.yaml
           TIMESTAMP: $(date +"%Y%m%d%H%M")

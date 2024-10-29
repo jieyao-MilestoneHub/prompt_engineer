@@ -102,7 +102,8 @@ if st.session_state['input_image_data'] and (
             "input_image_data": st.session_state["input_image_data"],
             "height": int(outpaint_height),
             "width": int(outpaint_width),
-            "outPaintingMode": "DEFAULT"
+            "outPaintingMode": "DEFAULT",
+            "seed": seed
         }
 
         # Add the selected mask option to the payload

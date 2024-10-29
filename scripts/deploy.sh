@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 定義參數
-BUCKET_NAME="creative360-datateam-image-generator-optimization"
+BUCKET_NAME="image-generator-optimization"
 PREFIX="prompt-engineer-manul"
 TIMESTAMP=$(date +"%Y%m%d%H%M")
 TEMPLATE_FILE="aws-resource/sam-template.yaml"

@@ -43,7 +43,7 @@ def lambda_handler(event, context):
         "prompt": prompt,
         "seed": seed,
         "rating": str(rating),
-        "labels": labels_string,  # Add labels here
+        "labels": labels_string or "N/A",  # Add labels here
         "timestamp": datetime.utcnow().isoformat()
     }
 

@@ -29,6 +29,7 @@ def lambda_handler(event, context):
     input_image_data = event.get('input_image_data')
     mask_image_data = event.get('mask_image_data')
     mask_prompt = event.get('mask_prompt')
+    seed = event.get('seed')
     height = event.get("height", 512)
     width = event.get("width", 512)
 
@@ -59,7 +60,8 @@ def lambda_handler(event, context):
             "numberOfImages": 1,
             "height": height,
             "width": width,
-            "cfgScale": 8.0
+            "cfgScale": 8.0,
+            "seed": seed
         }
     })
 
