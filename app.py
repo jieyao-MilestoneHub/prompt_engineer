@@ -33,10 +33,10 @@ prompt_changed = st.session_state.prev_prompt != prompt
 seed_changed = st.session_state.prev_seed != seed
 
 # Lambda function ARNs
-lambda_function_image_generator = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-ImageProcessingFunction"
-lambda_function_optimize_prompt = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-OptimizePromptFunction"
-lambda_function_save_prompts = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-SavePromptFunction"
-lambda_function_add_label = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11551766360-AddLabelFunction"
+lambda_function_image_generator = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-ImageProcessingFunction"
+lambda_function_optimize_prompt = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-OptimizePromptFunction"
+lambda_function_save_prompts = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-SavePromptFunction"
+lambda_function_add_label = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-AddLabelFunction"
 
 # Retrieve historical labels from DynamoDB
 def get_labels():
