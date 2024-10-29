@@ -22,7 +22,7 @@ def lambda_handler(event, context):
         }
 
     # Format the Claude-compatible prompt with user feedback
-    assistant_prompt = f"\n\nHuman: Original prompt was: \"{prompt}\". User provided the following feedback: {suggestion}\n\nAssistant:(IN ENGLISH, ONLY NEW PROMPT)"
+    assistant_prompt = f"\n\nHuman: Original prompt was: \"{prompt}\". User provided the following feedback: {suggestion}\n\nAssistant:(IN ENGLISH, ONLY NEW PROMPT, number of words less than 512)"
 
     # Generate optimized prompt using Claude
     try:
