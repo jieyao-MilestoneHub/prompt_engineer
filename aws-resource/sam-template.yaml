@@ -49,18 +49,6 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST  # Use on-demand billing mode, no need for ProvisionedThroughput
 
-  # install externel package
-  PillowLayer:
-    Type: AWS::Lambda::LayerVersion
-    Properties:
-      LayerName: PillowLayer
-      Description: "Layer containing Pillow library for image processing"
-      Content:
-        S3Bucket: !Ref S3BucketName
-        S3Key: !Sub "${S3Prefix}/layer/pillow_layer.zip"
-      CompatibleRuntimes:
-        - python3.11
-
   # IAM Role for Lambda Execution with CloudWatch and DynamoDB permissions
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -113,8 +101,6 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 120
       MemorySize: 1024
-      Layers:
-        - !Ref PillowLayer  # Attach the Pillow layer here
 
   # Lambda Function: ImageProcessingFunction
   ImageProcessingFunction:

@@ -2,8 +2,6 @@ import base64
 import json
 import logging
 import boto3
-import io
-from PIL import Image
 from botocore.exceptions import ClientError
 
 # Set up logging

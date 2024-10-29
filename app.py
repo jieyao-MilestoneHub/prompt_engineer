@@ -7,10 +7,10 @@ from PIL import Image
 
 # --- AWS Lambda Configuration ---
 LAMBDA_ARNS = {
-    "outpaint": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568505657-OutpaintFunction",
-    "optimize_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568505657-OptimizePromptFunction",
-    "save_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568505657-SavePromptFunction",
-    "add_label": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568505657-AddLabelFunction"
+    "outpaint": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-OutpaintFunction",
+    "optimize_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-OptimizePromptFunction",
+    "save_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-SavePromptFunction",
+    "add_label": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-AddLabelFunction"
 }
 
 # Initialize AWS Lambda and DynamoDB clients
