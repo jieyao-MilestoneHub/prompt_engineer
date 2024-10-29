@@ -2,4 +2,6 @@ venv/
 .aws-sam/
 pillow_layer/
 *.zip
+__pycache__
+
 PROMPT IS GIANT SSET.pptx

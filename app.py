@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-import BytesIO
+from io import BytesIO
 import json
 from utils.aws_lambda import invoke_lambda
 from utils.dynamo_db import get_labels
@@ -229,7 +229,7 @@ if st.session_state.get('image_generated', False) and st.session_state.get('imag
                 "prompt": prompt_to_save,
                 "rating": rating,
                 "seed": seed,
-                "labels": selected_label_ids
+                "LabelsIndex": selected_label_ids
             }
             result = invoke_lambda("save_prompt", save_payload)
             if result and result.get('statusCode') == 200:

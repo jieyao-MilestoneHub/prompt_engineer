@@ -28,13 +28,14 @@ def lambda_handler(event, context):
 
     # Generate a hash of the prompt to use as the primary key
     prompt_hash = hashlib.sha256(prompt.encode('utf-8')).hexdigest()
+    labels_string = ", ".join(labels)
 
     # Log the prompt and hash for debugging
     logger.info(f"Generated hash for prompt: {prompt_hash}")
     logger.info(f"Prompt: {prompt}")
     logger.info(f"Rating: {rating}")
     logger.info(f"Seed: {seed}")
-    logger.info(f"Labels: {labels}")
+    logger.info(f"Labels: {labels_string}")
 
     # Create the item to store in DynamoDB
     item = {
@@ -42,7 +43,7 @@ def lambda_handler(event, context):
         "prompt": prompt,
         "seed": seed,
         "rating": str(rating),
-        "labels": labels,  # Add labels here
+        "labels": labels_string,  # Add labels here
         "timestamp": datetime.utcnow().isoformat()
     }
 
