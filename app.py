@@ -7,10 +7,10 @@ from PIL import Image
 
 # --- AWS Lambda Configuration ---
 LAMBDA_ARNS = {
-    "outpaint": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-OutpaintFunction",
-    "optimize_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-OptimizePromptFunction",
-    "save_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-SavePromptFunction",
-    "add_label": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568799876-AddLabelFunction"
+    "outpaint": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568890345-OutpaintFunction",
+    "optimize_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568890345-OptimizePromptFunction",
+    "save_prompt": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568890345-SavePromptFunction",
+    "add_label": "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11568890345-AddLabelFunction"
 }
 
 # Initialize AWS Lambda and DynamoDB clients
@@ -58,20 +58,21 @@ seed = st.number_input("Enter seed value (optional):", value=42, min_value=0)
 outpaint_width = st.slider("Width of outpainted area", 256, 1024, 512)
 outpaint_height = st.slider("Height of outpainted area", 256, 1024, 512)
 
-# Mask Option Selection
+# Mask Option Selection: User can choose either a mask prompt or a mask image, but not both
 mask_option = st.selectbox("Select Mask Option:", ["Use Mask Prompt", "Use Mask Image"])
 mask_prompt = None
 mask_image_data = None
 
+# Input for the selected mask option
 if mask_option == "Use Mask Prompt":
-    mask_prompt = st.text_input("Enter Mask Prompt")
-else:
-    uploaded_mask = st.file_uploader("Upload Mask Image", type=["png", "jpg", "jpeg"])
+    mask_prompt = st.text_input("Enter Mask Prompt (required)")
+elif mask_option == "Use Mask Image":
+    uploaded_mask = st.file_uploader("Upload Mask Image (optional)", type=["png", "jpg", "jpeg"])
     if uploaded_mask:
         mask_image_data = encode_image(uploaded_mask)
 
-# Generate Outpainting
-if uploaded_image and ((mask_option == "Use Mask Prompt" and mask_prompt) or (mask_option == "Use Mask Image" and mask_image_data)):
+# Check if the main image is uploaded and at least one mask option is provided
+if uploaded_image and (mask_prompt or mask_image_data):
     input_image_data = encode_image(uploaded_image)
 
     if st.button("Generate Outpainting"):
@@ -79,14 +80,16 @@ if uploaded_image and ((mask_option == "Use Mask Prompt" and mask_prompt) or (ma
         outpainting_params = {
             "text": outpaint_prompt,
             "image": input_image_data,
-            "outPaintingMode": "DEFAULT"  # You can allow users to change this as an option if desired
+            "outPaintingMode": "DEFAULT"  # Allow user to select mode if desired
         }
 
-        if mask_option == "Use Mask Prompt":
+        # Add the selected mask option to the payload
+        if mask_option == "Use Mask Prompt" and mask_prompt:
             outpainting_params["maskPrompt"] = mask_prompt
-        else:
+        elif mask_option == "Use Mask Image" and mask_image_data:
             outpainting_params["maskImage"] = mask_image_data
 
+        # Create the payload
         payload = {
             "taskType": "OUTPAINTING",
             "outPaintingParams": outpainting_params,
@@ -98,6 +101,7 @@ if uploaded_image and ((mask_option == "Use Mask Prompt" and mask_prompt) or (ma
             }
         }
 
+        # Invoke Lambda function
         result = invoke_lambda("outpaint", payload)
         if result and result["statusCode"] == 200:
             st.success("Outpainted image generated successfully!")
@@ -108,6 +112,10 @@ if uploaded_image and ((mask_option == "Use Mask Prompt" and mask_prompt) or (ma
             st.session_state.image_generated = True
         else:
             st.error(result.get("message", "Unknown error"))
+
+else:
+    # Display a warning if requirements are not met
+    st.warning("Please upload the main image and provide either a mask prompt or a mask image.")
 
 # Rate and Tag Outpainted Image
 if st.session_state.get('image_generated', False):
