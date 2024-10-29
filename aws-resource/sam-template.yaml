@@ -5,7 +5,7 @@ Description: SAM template to deploy Lambda functions and DynamoDB tables for ima
 Parameters:
   S3BucketName:
     Type: String
-    Default: creative360-datateam-image-generator-optimization
+    Default: image-generator-optimization
     Description: The S3 bucket where Lambda function code is stored.
 
   S3Prefix:

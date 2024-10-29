@@ -7,7 +7,7 @@ Compress-Archive -Path "C:\Users\USER\Desktop\Develop\prompt_engineer\lambda_fun
 Compress-Archive -Path "C:\Users\USER\Desktop\Develop\prompt_engineer\lambda_function\addLabel.py" -DestinationPath "C:\Users\USER\Desktop\Develop\prompt_engineer\addLabel.zip" -Force
 
 # 上傳代碼和層到 S3
-$bucketName = "creative360-datateam-image-generator-optimization"
+$bucketName = "image-generator-optimization"
 $prefix = "prompt-engineer-manul"
 aws s3 cp "C:\Users\USER\Desktop\Develop\prompt_engineer\imageProcessing.zip" "s3://$bucketName/$prefix/lambda/imageProcessing.zip"
 aws s3 cp "C:\Users\USER\Desktop\Develop\prompt_engineer\OptimizePrompt.zip" "s3://$bucketName/$prefix/lambda/optimizePrompt.zip"
