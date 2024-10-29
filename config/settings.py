@@ -1,1 +1,0 @@
-MODEL_ID = "stability.stable-diffusion-xl-v1"

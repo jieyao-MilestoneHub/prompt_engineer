@@ -3,7 +3,7 @@ name: Deploy to AWS
 on:
   push:
     branches:
-      - no
+      - titan/dev
 
 jobs:
   deploy:
@@ -39,12 +39,14 @@ jobs:
           ls -al $LAMBDA_DIR || exit 1  # 若 ls 遇到錯誤（文件不存在），退出程式
 
           # 壓縮 Lambda 函數檔案並上傳至 S3
+          zip -j "$DEPLOY_DIR/outpaintImage.zip" "$LAMBDA_DIR/outpaintImage.py"
           zip -j "$DEPLOY_DIR/imageProcessing.zip" "$LAMBDA_DIR/imageProcessing.py"
           zip -j "$DEPLOY_DIR/optimizePrompt.zip" "$LAMBDA_DIR/optimizePrompt.py"
           zip -j "$DEPLOY_DIR/savePrompt.zip" "$LAMBDA_DIR/savePrompt.py"
           zip -j "$DEPLOY_DIR/addLabel.zip" "$LAMBDA_DIR/addLabel.py"
 
           # 上傳至 S3
+          aws s3 cp "$DEPLOY_DIR/outpaintImage.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/outpaintImage.zip"
           aws s3 cp "$DEPLOY_DIR/imageProcessing.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/imageProcessing.zip"
           aws s3 cp "$DEPLOY_DIR/optimizePrompt.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/optimizePrompt.zip"
           aws s3 cp "$DEPLOY_DIR/savePrompt.zip" "s3://$BUCKET_NAME/$PREFIX/lambda/savePrompt.zip"

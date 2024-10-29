@@ -33,6 +33,7 @@ prompt_changed = st.session_state.prev_prompt != prompt
 seed_changed = st.session_state.prev_seed != seed
 
 # Lambda function ARNs
+lambda_function_outpaint = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-OutpaintFunction"
 lambda_function_image_generator = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-ImageProcessingFunction"
 lambda_function_optimize_prompt = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-OptimizePromptFunction"
 lambda_function_save_prompts = "arn:aws:lambda:us-east-1:992382611204:function:image-generation-stack-11552571976-SavePromptFunction"
@@ -46,6 +47,49 @@ def get_labels():
     except Exception as e:
         st.error(f"Error retrieving labels: {str(e)}")
         return {}
+
+# Outpainting section in Streamlit app
+st.subheader("Outpainting Options")
+
+# Image and mask upload
+uploaded_image = st.file_uploader("Upload source image for outpainting", type=["png", "jpg", "jpeg"])
+uploaded_mask = st.file_uploader("Upload mask image", type=["png", "jpg", "jpeg"])
+
+# Outpainting prompt and dimensions
+outpaint_prompt = st.text_input("Outpainting prompt", "Expand the scene")
+outpaint_width = st.slider("Width of outpainted area", 256, 1024, 512)
+outpaint_height = st.slider("Height of outpainted area", 256, 1024, 512)
+
+# Convert uploaded files to base64
+if uploaded_image and uploaded_mask:
+    input_image_data = base64.b64encode(uploaded_image.read()).decode("utf-8")
+    mask_image_data = base64.b64encode(uploaded_mask.read()).decode("utf-8")
+    
+    # Outpaint button action
+    if st.button("Generate Outpainting"):
+        payload = {
+            "prompt": outpaint_prompt,
+            "input_image_data": input_image_data,
+            "mask_image_data": mask_image_data,
+            "width": outpaint_width,
+            "height": outpaint_height
+        }
+        try:
+            response = lambda_client.invoke(
+                FunctionName=lambda_function_outpaint,
+                InvocationType="RequestResponse",
+                Payload=json.dumps(payload)
+            )
+            result = json.loads(response["Payload"].read())
+            if result["statusCode"] == 200:
+                st.success("Outpainted image generated successfully!")
+                image_data = result.get("image_data")
+                image_bytes = base64.b64decode(image_data)
+                st.image(Image.open(BytesIO(image_bytes)))
+            else:
+                st.error(result.get("message", "Unknown error"))
+        except Exception as e:
+            st.error(f"Error calling Lambda function for outpainting: {str(e)}")
 
 # Generate Image button action
 with st.form("generate_image_form"):

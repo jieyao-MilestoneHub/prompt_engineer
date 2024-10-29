@@ -88,6 +88,20 @@ Resources:
                   - logs:PutLogEvents
                 Resource: "arn:aws:logs:*:*:*"
 
+  # Lambda Function: OutpaintFunction
+  OutpaintFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-OutpaintFunction"
+      Handler: outpaintImage.lambda_handler
+      Runtime: python3.11
+      CodeUri:
+        Bucket: !Ref S3BucketName
+        Key: !Sub "${S3Prefix}/lambda/outpaintImage.zip"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 120
+      MemorySize: 1024
+
   # Lambda Function: ImageProcessingFunction
   ImageProcessingFunction:
     Type: AWS::Serverless::Function
