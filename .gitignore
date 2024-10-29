@@ -1,4 +1,5 @@
 venv/
 .aws-sam/
+pillow_layer/
 *.zip
 PROMPT IS GIANT SSET.pptx
